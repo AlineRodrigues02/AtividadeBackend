@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Usuario{
+  id Int @id @default(autoincrement())
+  nome String 
+  email String @unique
+  //relação de pedido 1:N onde usuario pode ter vários pedidos 
+  //cria uma lista de array 
+  pedidos Pedido[]
+}
+model Produto{
+  id Int @id @default(autoincrement())
+  nome String
+  preco Decimal @db.Decimal(10,2)
+  estoque Int
+  ativo Boolean @default(true)
+  //relação
+  itensPedidos ItemPedido[]
+  //serve para cria um índice apenas na coluna e filtrar de forma mais rapida 
+  @@index([nome]) 
+  @@index([ativo])
+}
+model Pedido{
+  id Int @id @default(autoincrement())
+  usuarioId Int
+  data DateTime @default(now())
+  status  StatusPedido @default(ABERTO)
+  //relações
+  //cada pedido pertence a um usuario O usuario a quem pertence este pedido
+  //Forma de fazer a relação FK para outro model  
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  //e cada pedido tem muitos itens 
+  itens ItemPedido[]
+  //Indice composto para consultas 
+  @@index([usuarioId,data])
+}
+enum StatusPedido{
+  ABERTO
+  PAGO
+  ENVIADO
+  ENTREGUE
+}
+
+model ItemPedido{
+  pedidoId Int
+  produtoId Int
+  quantidade Int
+  precoUnitario Decimal @db.Decimal(10,2)
+  //relaciona 
+  pedido Pedido @relation(fields: [pedidoId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id])
+  @@id([pedidoId, produtoId]) //Chave primaria composta para evitar duplicidade 
+}
